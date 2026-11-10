@@ -8,9 +8,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PowerStation extends Model
 {
-     protected $primaryKey = 'station_code';
+    protected $primaryKey = 'station_code';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
+
     protected $fillable = [
         'station_code',
         'station_type_id',
@@ -27,6 +30,7 @@ class PowerStation extends Model
             'station_type_id'
         );
     }
+
     public function operator(): BelongsTo
     {
         return $this->belongsTo(
@@ -35,6 +39,7 @@ class PowerStation extends Model
             'operator_id'
         );
     }
+
     public function gridZone(): BelongsTo
     {
         return $this->belongsTo(
@@ -43,6 +48,7 @@ class PowerStation extends Model
             'grid_zone_id'
         );
     }
+
     public function readings(): HasMany
     {
         return $this->hasMany(

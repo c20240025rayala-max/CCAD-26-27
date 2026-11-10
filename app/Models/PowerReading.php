@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+
 class PowerReading extends Model
 {
     protected $primaryKey = 'reading_id';
@@ -38,8 +39,8 @@ class PowerReading extends Model
     public function getGrossPayoutAttribute(): string
     {
         return number_format(
-            (float) $this->kwh_generated
-                * (float) $this->feed_in_tariff_rate,
+            (float) $this->kwh_generated *
+            (float) $this->feed_in_tariff_rate,
             2,
             '.',
             ''
