@@ -13,6 +13,10 @@ class PowerStationService
         foreach (['station_code', 'station_status'] as $field) {
             if (isset($data[$field])) {
                 $data[$field] = trim(strip_tags($data[$field]));
+
+                if ($field === 'station_code') {
+                    $data[$field] = strtoupper($data[$field]);
+                }
             }
         }
 

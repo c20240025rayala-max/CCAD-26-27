@@ -16,7 +16,8 @@ class StorePowerStationRequest extends FormRequest
     {
         foreach (['station_code', 'station_status'] as $field) {
             if (is_string($this->input($field))) {
-                $this->merge([$field => trim($this->input($field))]);
+                $value = trim($this->input($field));
+                $this->merge([$field => $field === 'station_code' ? strtoupper($value) : $value]);
             }
         }
     }
@@ -29,6 +30,7 @@ class StorePowerStationRequest extends FormRequest
             'operator_id' => ['required', 'integer', 'exists:operators,operator_id'],
             'grid_zone_id' => ['required', 'integer', 'exists:grid_zones,grid_zone_id'],
             'station_status' => ['required', 'string', 'max:50'],
+            'installed_capacity_mw' => ['required', 'numeric', 'min:0.001', 'max:999999999.999', 'decimal:0,3'],
         ];
     }
 
@@ -46,6 +48,10 @@ class StorePowerStationRequest extends FormRequest
             'grid_zone_id.exists' => 'The selected grid zone does not exist.',
             'station_status.required' => 'Please enter a station status.',
             'station_status.max' => 'The station status cannot exceed 50 characters.',
+            'installed_capacity_mw.required' => 'Please enter the plant installed capacity.',
+            'installed_capacity_mw.numeric' => 'Installed capacity must be numeric.',
+            'installed_capacity_mw.min' => 'Installed capacity must be greater than zero.',
+            'installed_capacity_mw.decimal' => 'Installed capacity may have up to 3 decimal places.',
         ];
     }
 }

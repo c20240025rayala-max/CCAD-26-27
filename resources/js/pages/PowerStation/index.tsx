@@ -5,6 +5,7 @@ import { type BreadcrumbItem } from '@/types';
 interface PowerStation {
 	station_code: string;
 	station_status: string;
+	installed_capacity_mw: string;
 	station_type?: { type_name: string };
 	operator?: { operator_name: string };
 	grid_zone?: { zone_name: string };
@@ -45,6 +46,7 @@ export default function PowerStationIndex({ powerStations }: Props) {
 								<th className="px-4 py-3 font-medium">Operator</th>
 								<th className="px-4 py-3 font-medium">Grid zone</th>
 								<th className="px-4 py-3 font-medium">Status</th>
+								<th className="px-4 py-3 font-medium">Capacity (MW)</th>
 								<th className="px-4 py-3 font-medium">Actions</th>
 							</tr>
 						</thead>
@@ -56,6 +58,7 @@ export default function PowerStationIndex({ powerStations }: Props) {
 									<td className="px-4 py-3">{station.operator?.operator_name ?? '—'}</td>
 									<td className="px-4 py-3">{station.grid_zone?.zone_name ?? '—'}</td>
 									<td className="px-4 py-3">{station.station_status}</td>
+									<td className="px-4 py-3">{station.installed_capacity_mw}</td>
 									<td className="px-4 py-3">
 										<div className="flex gap-3">
 											<Link href={route('power-stations.edit', station.station_code)} className="underline underline-offset-4">Edit</Link>
@@ -65,7 +68,7 @@ export default function PowerStationIndex({ powerStations }: Props) {
 								</tr>
 							))}
 							{powerStations.data.length === 0 && (
-								<tr><td colSpan={6} className="px-4 py-10 text-center text-muted-foreground">No power stations found.</td></tr>
+								<tr><td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">No power stations found.</td></tr>
 							)}
 						</tbody>
 					</table>

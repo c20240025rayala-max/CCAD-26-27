@@ -14,7 +14,7 @@ class StorePowerReadingRequest extends FormRequest
     protected function prepareForValidation(): void
     {
         if (is_string($this->input('station_code'))) {
-            $this->merge(['station_code' => trim($this->input('station_code'))]);
+            $this->merge(['station_code' => strtoupper(trim($this->input('station_code')))]);
         }
     }
 

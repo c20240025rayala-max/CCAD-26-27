@@ -10,6 +10,7 @@ interface Reading {
 	reading_timestamp: string;
 	feed_in_tariff_rate: string;
 	gross_payout: string;
+	peak_drop_alert: boolean;
 	station?: { station_code: string };
 }
 
@@ -46,6 +47,7 @@ export default function PowerReadingIndex({ powerReadings }: Props) {
 								<th className="px-4 py-3 font-medium">Peak (MW)</th>
 								<th className="px-4 py-3 font-medium">Tariff rate</th>
 								<th className="px-4 py-3 font-medium">Gross payout</th>
+								<th className="px-4 py-3 font-medium">Alert</th>
 								<th className="px-4 py-3 font-medium">Actions</th>
 							</tr>
 						</thead>
@@ -58,10 +60,11 @@ export default function PowerReadingIndex({ powerReadings }: Props) {
 									<td className="px-4 py-3">{reading.peak_mw}</td>
 									<td className="px-4 py-3">{reading.feed_in_tariff_rate}</td>
 									<td className="px-4 py-3">{reading.gross_payout}</td>
+									<td className="px-4 py-3">{reading.peak_drop_alert ? <span className="font-medium text-destructive">Unexpected peak drop</span> : '—'}</td>
 									<td className="px-4 py-3"><div className="flex gap-3"><Link href={route('power-readings.edit', reading.reading_id)} className="underline underline-offset-4">Edit</Link><button type="button" className="text-destructive underline underline-offset-4" onClick={() => router.delete(route('power-readings.destroy', reading.reading_id))}>Delete</button></div></td>
 								</tr>
 							))}
-							{powerReadings.data.length === 0 && <tr><td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">No power readings found.</td></tr>}
+							{powerReadings.data.length === 0 && <tr><td colSpan={8} className="px-4 py-10 text-center text-muted-foreground">No power readings found.</td></tr>}
 						</tbody>
 					</table>
 				</div>

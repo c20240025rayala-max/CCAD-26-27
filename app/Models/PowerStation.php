@@ -20,7 +20,15 @@ class PowerStation extends Model
         'operator_id',
         'grid_zone_id',
         'station_status',
+        'installed_capacity_mw',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'installed_capacity_mw' => 'decimal:3',
+        ];
+    }
 
     public function stationType(): BelongsTo
     {

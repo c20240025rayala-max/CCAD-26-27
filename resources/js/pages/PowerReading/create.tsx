@@ -5,6 +5,7 @@ import { type BreadcrumbItem } from '@/types';
 
 interface StationOption {
 	station_code: string;
+	installed_capacity_mw: string | null;
 }
 
 interface Reading {
@@ -30,6 +31,7 @@ export default function PowerReadingCreate({ powerStations, powerReading }: Prop
 		reading_timestamp: powerReading?.reading_timestamp?.slice(0, 16) ?? '',
 		feed_in_tariff_rate: powerReading?.feed_in_tariff_rate ?? '',
 	});
+	const selectedStation = powerStations.find((station) => station.station_code === data.station_code);
 	const breadcrumbs: BreadcrumbItem[] = [
 		{ title: 'Power readings', href: '/power-readings' },
 		{ title: editing ? 'Edit reading' : 'Add reading', href: '#' },
@@ -56,7 +58,7 @@ export default function PowerReadingCreate({ powerStations, powerReading }: Prop
 					<label className="grid gap-2 text-sm font-medium sm:col-span-2">Power station
 						<select className="rounded-md border bg-background px-3 py-2 font-normal" required value={data.station_code} onChange={(event) => setData('station_code', event.target.value)}>
 							<option value="">Select a station</option>
-							{powerStations.map((station) => <option key={station.station_code} value={station.station_code}>{station.station_code}</option>)}
+							{powerStations.map((station) => <option key={station.station_code} value={station.station_code}>{station.station_code} ({station.installed_capacity_mw ?? 'capacity not set'} MW)</option>)}
 						</select>
 						{errors.station_code && <span className="font-normal text-destructive">{errors.station_code}</span>}
 					</label>
@@ -65,7 +67,7 @@ export default function PowerReadingCreate({ powerStations, powerReading }: Prop
 						{errors.kwh_generated && <span className="font-normal text-destructive">{errors.kwh_generated}</span>}
 					</label>
 					<label className="grid gap-2 text-sm font-medium">Peak output (MW)
-						<input type="number" min="0" step="0.001" required className="rounded-md border bg-background px-3 py-2 font-normal" value={data.peak_mw} onChange={(event) => setData('peak_mw', event.target.value)} />
+						<input type="number" min="0" max={selectedStation?.installed_capacity_mw ?? undefined} step="0.001" required className="rounded-md border bg-background px-3 py-2 font-normal" value={data.peak_mw} onChange={(event) => setData('peak_mw', event.target.value)} />
 						{errors.peak_mw && <span className="font-normal text-destructive">{errors.peak_mw}</span>}
 					</label>
 					<label className="grid gap-2 text-sm font-medium">Reading date and time

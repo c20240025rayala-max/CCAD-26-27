@@ -17,6 +17,7 @@ class PowerReading extends Model
         'peak_mw',
         'reading_timestamp',
         'feed_in_tariff_rate',
+        'peak_drop_alert',
     ];
 
     protected function casts(): array
@@ -26,6 +27,7 @@ class PowerReading extends Model
             'peak_mw' => 'decimal:3',
             'reading_timestamp' => 'datetime',
             'feed_in_tariff_rate' => 'decimal:4',
+            'peak_drop_alert' => 'boolean',
         ];
     }
 
