@@ -3,63 +3,80 @@
 namespace App\Http\Controllers;
 
 use App\Models\StationType;
-use Illuminate\Http\Request;
+use App\Http\Requests\StationTypeRequest;
+use App\Services\StationTypeService;
 
 class StationTypeController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    protected $stationTypeService;
+
+    public function __construct(StationTypeService $stationTypeService)
+    {
+        $this->stationTypeService = $stationTypeService;
+    }
+
+    // Display all station types
     public function index()
     {
-        //
+        $stationTypes = StationType::with('powerStations')
+            ->orderBy('type_name')
+            ->paginate(10);
+
+        return view('station_types.index', compact('stationTypes'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
+    // Show the create form
     public function create()
     {
-        //
+        return view('station_types.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    // Store a new station type
+    public function store(StationTypeRequest $request)
     {
-        //
+        $this->stationTypeService->create($request->validated());
+
+        return redirect()
+            ->route('station-types.index')
+            ->with('success', 'Station type created successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     */
+    // Display one station type
     public function show(StationType $stationType)
     {
-        //
+        $stationType->load('powerStations');
+
+        return view('station_types.show', compact('stationType'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
+    // Show the edit form
     public function edit(StationType $stationType)
     {
-        //
+        return view('station_types.edit', compact('stationType'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, StationType $stationType)
-    {
-        //
+    // Update a station type
+    public function update(
+        StationTypeRequest $request,
+        StationType $stationType
+    ) {
+        $this->stationTypeService->update(
+            $stationType,
+            $request->validated()
+        );
+
+        return redirect()
+            ->route('station-types.index')
+            ->with('success', 'Station type updated successfully.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
+    // Delete a station type
     public function destroy(StationType $stationType)
     {
-        //
+        $stationType->delete();
+
+        return redirect()
+            ->route('station-types.index')
+            ->with('success', 'Station type deleted successfully.');
     }
 }

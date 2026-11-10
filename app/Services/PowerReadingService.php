@@ -69,4 +69,9 @@ class PowerReadingService
             return $reading->refresh();
         });
     }
+
+    public function delete(PowerReading $reading): void
+    {
+        DB::transaction(fn () => $reading->delete());
+    }
 }

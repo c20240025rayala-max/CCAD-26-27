@@ -3,63 +3,80 @@
 namespace App\Http\Controllers;
 
 use App\Models\Operator;
-use Illuminate\Http\Request;
+use App\Http\Requests\OperatorRequest;
+use App\Services\OperatorService;
 
 class OperatorController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    protected $operatorService;
+
+    public function __construct(OperatorService $operatorService)
+    {
+        $this->operatorService = $operatorService;
+    }
+
+    // Display all operators
     public function index()
     {
-        //
+        $operators = Operator::with('powerStations')
+            ->orderBy('operator_name')
+            ->paginate(10);
+
+        return view('operators.index', compact('operators'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
+    // Show the create form
     public function create()
     {
-        //
+        return view('operators.create');
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
+    // Store a new operator
+    public function store(OperatorRequest $request)
     {
-        //
+        $this->operatorService->create($request->validated());
+
+        return redirect()
+            ->route('operators.index')
+            ->with('success', 'Operator created successfully.');
     }
 
-    /**
-     * Display the specified resource.
-     */
+    // Display one operator
     public function show(Operator $operator)
     {
-        //
+        $operator->load('powerStations');
+
+        return view('operators.show', compact('operator'));
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
+    // Show the edit form
     public function edit(Operator $operator)
     {
-        //
+        return view('operators.edit', compact('operator'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, Operator $operator)
-    {
-        //
+    // Update an operator
+    public function update(
+        OperatorRequest $request,
+        Operator $operator
+    ) {
+        $this->operatorService->update(
+            $operator,
+            $request->validated()
+        );
+
+        return redirect()
+            ->route('operators.index')
+            ->with('success', 'Operator updated successfully.');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
+    // Delete an operator
     public function destroy(Operator $operator)
     {
-        //
+        $operator->delete();
+
+        return redirect()
+            ->route('operators.index')
+            ->with('success', 'Operator deleted successfully.');
     }
 }

@@ -27,9 +27,9 @@ class PowerStationService
             ]);
         }
 
-        if (isset($data['station_code']) && strlen($data['station_code']) > 50) {
+        if (isset($data['station_code']) && strlen($data['station_code']) > 100) {
             throw ValidationException::withMessages([
-                'station_code' => 'Station code must not exceed 50 characters.',
+            'station_code' => 'Station code must not exceed 100 characters.',
             ]);
         }
 
@@ -60,5 +60,10 @@ class PowerStationService
 
             return $station->refresh();
         });
+    }
+
+    public function delete(PowerStation $station): void
+    {
+        DB::transaction(fn () => $station->delete());
     }
 }

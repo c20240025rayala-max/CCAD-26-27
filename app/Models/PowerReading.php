@@ -9,6 +9,8 @@ class PowerReading extends Model
 {
     protected $primaryKey = 'reading_id';
 
+    protected $appends = ['gross_payout'];
+
     protected $fillable = [
         'station_code',
         'kwh_generated',
