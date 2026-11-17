@@ -24,7 +24,15 @@ class UpdatePowerReadingRequest extends FormRequest
             'station_code' => ['required', 'string', 'max:100', 'exists:power_stations,station_code'],
             'kwh_generated' => ['required', 'numeric', 'min:0', 'decimal:0,3'],
             'peak_mw' => ['required', 'numeric', 'min:0', 'decimal:0,3'],
-            'reading_timestamp' => ['required', 'date'],
+            'reading_timestamp' => [
+                'required',
+                'date_format:Y-m-d\TH:i',
+                function ($attribute, $value, $fail) {
+                    if (is_string($value) && substr($value, 0, 4) !== now()->format('Y')) {
+                        $fail('The reading date must be in the current year.');
+                    }
+                },
+            ],
             'feed_in_tariff_rate' => ['required', 'numeric', 'min:0', 'decimal:0,4'],
         ];
     }
@@ -43,7 +51,7 @@ class UpdatePowerReadingRequest extends FormRequest
             'peak_mw.min' => 'Peak output cannot be negative.',
             'peak_mw.decimal' => 'Peak output may have up to 3 decimal places.',
             'reading_timestamp.required' => 'Please enter the reading date and time.',
-            'reading_timestamp.date' => 'Please enter a valid date and time.',
+            'reading_timestamp.date_format' => 'Please enter a valid date and time.',
             'feed_in_tariff_rate.required' => 'Please enter the feed-in tariff rate.',
             'feed_in_tariff_rate.numeric' => 'The tariff rate must be numeric.',
             'feed_in_tariff_rate.min' => 'The tariff rate cannot be negative.',

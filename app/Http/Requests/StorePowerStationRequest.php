@@ -3,7 +3,6 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 class StorePowerStationRequest extends FormRequest
 {
@@ -14,22 +13,18 @@ class StorePowerStationRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
-        foreach (['station_code', 'station_status'] as $field) {
-            if (is_string($this->input($field))) {
-                $value = trim($this->input($field));
-                $this->merge([$field => $field === 'station_code' ? strtoupper($value) : $value]);
-            }
+        if (is_string($this->input('station_status'))) {
+            $this->merge(['station_status' => trim($this->input('station_status'))]);
         }
     }
 
     public function rules(): array
     {
         return [
-            'station_code' => ['required', 'string', 'max:100', Rule::unique('power_stations', 'station_code')],
             'station_type_id' => ['required', 'integer', 'exists:station_types,station_type_id'],
             'operator_id' => ['required', 'integer', 'exists:operators,operator_id'],
             'grid_zone_id' => ['required', 'integer', 'exists:grid_zones,grid_zone_id'],
-            'station_status' => ['required', 'string', 'max:50'],
+            'station_status' => ['required', 'string', 'in:Active,Inactive,Maintenance'],
             'installed_capacity_mw' => ['required', 'numeric', 'min:0.001', 'max:999999999.999', 'decimal:0,3'],
         ];
     }
@@ -37,17 +32,14 @@ class StorePowerStationRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'station_code.required' => 'Please enter a station code.',
-            'station_code.unique' => 'This station code already exists.',
-            'station_code.max' => 'The station code cannot exceed 100 characters.',
             'station_type_id.required' => 'Please select a station type.',
             'station_type_id.exists' => 'The selected station type does not exist.',
             'operator_id.required' => 'Please select an operator.',
             'operator_id.exists' => 'The selected operator does not exist.',
             'grid_zone_id.required' => 'Please select a grid zone.',
             'grid_zone_id.exists' => 'The selected grid zone does not exist.',
-            'station_status.required' => 'Please enter a station status.',
-            'station_status.max' => 'The station status cannot exceed 50 characters.',
+            'station_status.required' => 'Please select a station status.',
+            'station_status.in' => 'Please select a valid station status.',
             'installed_capacity_mw.required' => 'Please enter the plant installed capacity.',
             'installed_capacity_mw.numeric' => 'Installed capacity must be numeric.',
             'installed_capacity_mw.min' => 'Installed capacity must be greater than zero.',

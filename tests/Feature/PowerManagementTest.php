@@ -7,6 +7,7 @@ use App\Models\Operator;
 use App\Models\PowerReading;
 use App\Models\PowerStation;
 use App\Models\StationType;
+use App\Models\User;
 use Database\Seeders\PowerManagementSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -30,7 +31,34 @@ class PowerManagementTest extends TestCase
             );
     }
 
-    public function test_power_station_is_created_sanitized_updated_and_eager_loaded(): void
+    public function test_dashboard_displays_power_station_and_reading_metrics(): void
+    {
+        $station = $this->createPowerStation();
+        PowerReading::create([
+            'station_code' => $station->station_code,
+            'kwh_generated' => '12.345',
+            'peak_mw' => '2.500',
+            'reading_timestamp' => now()->startOfDay(),
+            'feed_in_tariff_rate' => '0.1250',
+            'peak_drop_alert' => true,
+        ]);
+
+        $this->actingAs(User::factory()->create())
+            ->get(route('dashboard'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('dashboard')
+                ->where('summary.totalStations', 1)
+                ->where('summary.activeStations', 1)
+                ->where('summary.generationThisMonthKwh', 12.345)
+                ->where('summary.peakOutputThisMonthMw', 2.5)
+                ->where('summary.peakDropAlerts', 1)
+                ->has('generationTrend', 7)
+                ->where('recentReadings.0.stationCode', $station->station_code)
+                ->where('recentReadings.0.peakDropAlert', true)
+            );
+    }
+
+    public function test_power_station_code_is_generated_immutable_and_status_is_validated(): void
     {
         $type = StationType::create(['type_name' => 'Solar']);
         $operator = Operator::create(['operator_name' => 'North Energy']);
@@ -40,23 +68,34 @@ class PowerManagementTest extends TestCase
             'station_type_id' => $type->station_type_id,
             'operator_id' => $operator->operator_id,
             'grid_zone_id' => $zone->grid_zone_id,
-            'station_status' => '<strong>Online</strong>',
+            'station_status' => 'Unknown',
             'installed_capacity_mw' => '3.500',
         ];
 
         $this->post(route('power-stations.store'), $data)
+            ->assertSessionHasErrors('station_status');
+
+        $data['station_status'] = 'Active';
+        $this->post(route('power-stations.store'), $data)
             ->assertRedirect(route('power-stations.index'));
 
+        $station = PowerStation::firstOrFail();
+        $this->assertMatchesRegularExpression('/^PS-[0-9A-HJKMNP-TV-Z]{26}$/', $station->station_code);
         $this->assertDatabaseHas('power_stations', [
-            'station_code' => 'ST-01',
-            'station_status' => 'Online',
+            'station_code' => $station->station_code,
+            'station_status' => 'Active',
             'installed_capacity_mw' => '3.500',
         ]);
 
-        $data['station_code'] = 'ST-01';
-        $data['station_status'] = 'Operational';
-        $this->put(route('power-stations.update', 'ST-01'), $data)
+        $data['station_code'] = 'CHANGED';
+        $data['station_status'] = 'Maintenance';
+        $this->put(route('power-stations.update', $station->station_code), $data)
             ->assertRedirect(route('power-stations.index'));
+
+        $this->assertDatabaseHas('power_stations', [
+            'station_code' => $station->station_code,
+            'station_status' => 'Maintenance',
+        ]);
 
         $this->withoutVite()
             ->get(route('power-stations.index'))
@@ -76,10 +115,14 @@ class PowerManagementTest extends TestCase
             'station_code' => strtolower($station->station_code),
             'kwh_generated' => '12.345',
             'peak_mw' => '2.500',
-            'reading_timestamp' => '2026-11-10T12:30',
+            'reading_timestamp' => now()->addYear()->format('Y-m-d\TH:i'),
             'feed_in_tariff_rate' => '0.1250',
         ];
 
+        $this->post(route('power-readings.store'), $data)
+            ->assertSessionHasErrors('reading_timestamp');
+
+        $data['reading_timestamp'] = now()->subDays(7)->format('Y-m-d\TH:i');
         $this->post(route('power-readings.store'), $data)
             ->assertRedirect(route('power-readings.index'));
 
@@ -87,6 +130,11 @@ class PowerManagementTest extends TestCase
         $this->assertSame('1.54', $reading->gross_payout);
 
         $data['kwh_generated'] = '20.000';
+        $data['reading_timestamp'] = now()->addYear()->format('Y-m-d\TH:i');
+        $this->put(route('power-readings.update', $reading->reading_id), $data)
+            ->assertSessionHasErrors('reading_timestamp');
+
+        $data['reading_timestamp'] = now()->subDays(6)->format('Y-m-d\TH:i');
         $this->put(route('power-readings.update', $reading->reading_id), $data)
             ->assertRedirect(route('power-readings.index'));
 
@@ -108,7 +156,7 @@ class PowerManagementTest extends TestCase
             'station_code' => $station->station_code,
             'kwh_generated' => '2500.000',
             'peak_mw' => '3.501',
-            'reading_timestamp' => '2026-11-10T12:00',
+            'reading_timestamp' => now()->startOfYear()->addDay()->setTime(12, 0)->format('Y-m-d\TH:i'),
             'feed_in_tariff_rate' => '0.1000',
         ];
 
@@ -120,7 +168,7 @@ class PowerManagementTest extends TestCase
             ->assertRedirect(route('power-readings.index'));
 
         $data['peak_mw'] = '1.900';
-        $data['reading_timestamp'] = '2026-11-10T13:00';
+        $data['reading_timestamp'] = now()->startOfYear()->addDay()->setTime(13, 0)->format('Y-m-d\TH:i');
         $this->post(route('power-readings.store'), $data)
             ->assertRedirect(route('power-readings.index'));
 
@@ -128,6 +176,28 @@ class PowerManagementTest extends TestCase
             'station_code' => $station->station_code,
             'peak_mw' => '1.900',
             'peak_drop_alert' => true,
+        ]);
+    }
+
+    public function test_deleting_a_power_station_also_deletes_its_readings(): void
+    {
+        $station = $this->createPowerStation();
+        $reading = PowerReading::create([
+            'station_code' => $station->station_code,
+            'kwh_generated' => '12.345',
+            'peak_mw' => '2.500',
+            'reading_timestamp' => '2026-11-10 12:30:00',
+            'feed_in_tariff_rate' => '0.1250',
+        ]);
+
+        $this->delete(route('power-stations.destroy', $station->station_code))
+            ->assertRedirect(route('power-stations.index'));
+
+        $this->assertDatabaseMissing('power_stations', [
+            'station_code' => $station->station_code,
+        ]);
+        $this->assertDatabaseMissing('power_readings', [
+            'reading_id' => $reading->reading_id,
         ]);
     }
 

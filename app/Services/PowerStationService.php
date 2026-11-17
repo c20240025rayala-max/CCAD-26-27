@@ -4,39 +4,31 @@ namespace App\Services;
 
 use App\Models\PowerStation;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class PowerStationService
 {
     private function sanitize(array $data): array
     {
-        foreach (['station_code', 'station_status'] as $field) {
-            if (isset($data[$field])) {
-                $data[$field] = trim(strip_tags($data[$field]));
-
-                if ($field === 'station_code') {
-                    $data[$field] = strtoupper($data[$field]);
-                }
-            }
+        if (isset($data['station_status'])) {
+            $data['station_status'] = trim(strip_tags($data['station_status']));
         }
 
         return $data;
     }
 
+    private function generateStationCode(): string
+    {
+        do {
+            $stationCode = 'PS-'.Str::ulid();
+        } while (PowerStation::whereKey($stationCode)->exists());
+
+        return $stationCode;
+    }
+
     private function checkConstraints(array $data): void
     {
-        if (isset($data['station_code']) && $data['station_code'] === '') {
-            throw ValidationException::withMessages([
-                'station_code' => 'Station code cannot be empty.',
-            ]);
-        }
-
-        if (isset($data['station_code']) && strlen($data['station_code']) > 100) {
-            throw ValidationException::withMessages([
-            'station_code' => 'Station code must not exceed 100 characters.',
-            ]);
-        }
-
         if (isset($data['station_status']) && $data['station_status'] === '') {
             throw ValidationException::withMessages([
                 'station_status' => 'Station status cannot be empty.',
@@ -49,6 +41,7 @@ class PowerStationService
         return DB::transaction(function () use ($data) {
             $data = $this->sanitize($data);
             $this->checkConstraints($data);
+            $data['station_code'] = $this->generateStationCode();
 
             return PowerStation::create($data);
         });
@@ -57,6 +50,7 @@ class PowerStationService
     public function update(PowerStation $station, array $data): PowerStation
     {
         return DB::transaction(function () use ($station, $data) {
+            unset($data['station_code']);
             $data = $this->sanitize($data);
             $this->checkConstraints($data);
 
