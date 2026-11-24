@@ -18,7 +18,7 @@ class GridZoneController extends Controller
     // Display all grid zones
     public function index()
     {
-        $gridZones = GridZone::with('powerStations')
+        $gridZones = GridZone::with('powerStations') // NEED FURTHER OPTIMIZATION
             ->orderBy('zone_name')
             ->paginate(10);
 
@@ -44,7 +44,7 @@ class GridZoneController extends Controller
     // Display one grid zone
     public function show(GridZone $gridZone)
     {
-        $gridZone->load('powerStations');
+        $gridZone->load('powerStations'); // NEED FURTHER OPTIMIZATION
 
         return view('grid_zones.show', compact('gridZone'));
     }
