@@ -51,17 +51,17 @@ class PowerReadingService
         }
 
         if (isset($data['station_code'], $data['peak_mw'])) {
-            $station = PowerStation::query()
+            $installedCapacity = PowerStation::query()
                 ->whereKey($data['station_code'])
-                ->first();
+                ->value('installed_capacity_mw');
 
-            if ($station?->installed_capacity_mw === null) {
+            if ($installedCapacity === null) {
                 throw ValidationException::withMessages([
                     'station_code' => 'Set the station installed capacity before adding readings.',
                 ]);
             }
 
-            if ($station && (float) $data['peak_mw'] > (float) $station->installed_capacity_mw) {
+            if ((float) $data['peak_mw'] > (float) $installedCapacity) {
                 throw ValidationException::withMessages([
                     'peak_mw' => 'Peak output cannot exceed the station installed capacity.',
                 ]);
@@ -75,19 +75,19 @@ class PowerReadingService
         $timestamp = $data['reading_timestamp'] ?? $reading?->reading_timestamp;
         $peakMw = (float) ($data['peak_mw'] ?? $reading?->peak_mw);
 
-        $previousReading = PowerReading::query()
+        $previousPeakMw = PowerReading::query()
             ->where('station_code', $stationCode)
             ->where('reading_timestamp', '<', $timestamp)
             ->orderByDesc('reading_timestamp')
             ->lockForUpdate()
-            ->first();
+            ->value('peak_mw');
 
-        if (! $previousReading || (float) $previousReading->peak_mw <= 0) {
+        if ($previousPeakMw === null || (float) $previousPeakMw <= 0) {
             return false;
         }
 
-        $dropPercent = ((float) $previousReading->peak_mw - $peakMw)
-            / (float) $previousReading->peak_mw * 100;
+        $dropPercent = ((float) $previousPeakMw - $peakMw)
+            / (float) $previousPeakMw * 100;
 
         return $dropPercent >= self::PEAK_DROP_ALERT_PERCENT;
     }

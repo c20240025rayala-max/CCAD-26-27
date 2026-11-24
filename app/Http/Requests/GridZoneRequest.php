@@ -16,7 +16,7 @@ class GridZoneRequest extends FormRequest
     {
         if (is_string($this->input('zone_name'))) {
             $this->merge([
-                'zone_name' => trim($this->input('zone_name')),
+                'zone_name' => trim(strip_tags($this->input('zone_name'))),
             ]);
         }
     }
@@ -50,9 +50,9 @@ class GridZoneRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'zone_name.required' => 'Please enter a grid zone name.',
+            'zone_name.required' => 'Grid zone name cannot be empty.',
             'zone_name.string' => 'The grid zone name must be text.',
-            'zone_name.max' => 'The grid zone name cannot exceed 100 characters.',
+            'zone_name.max' => 'Grid zone name must not exceed 100 characters.',
             'zone_name.unique' => 'This grid zone already exists.',
         ];
     }

@@ -18,9 +18,9 @@ class OperatorController extends Controller
     // Display all operators
     public function index()
     {
-        $operators = Operator::with('powerStations') // NEED FURTHER OPTIMIZATION
-            ->orderBy('operator_name') // NEED FURTHER OPTIMIZATION
-            ->paginate(10); // NEED FURTHER OPTIMIZATION
+        $operators = Operator::with('powerStations')
+            ->orderBy('operator_name')
+            ->paginate(10);
 
         return view('operators.index', compact('operators'));
     }
@@ -44,7 +44,7 @@ class OperatorController extends Controller
     // Display one operator
     public function show(Operator $operator)
     {
-        $operator->load('powerStations'); // NEED FURTHER OPTIMIZATION
+        $operator->load('powerStations');
 
         return view('operators.show', compact('operator'));
     }

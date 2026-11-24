@@ -18,7 +18,7 @@ class StationTypeController extends Controller
     // Display all station types
     public function index()
     {
-        $stationTypes = StationType::with('powerStations') // NEED FURTHER OPTIMIZATION
+        $stationTypes = StationType::with('powerStations')
             ->orderBy('type_name')
             ->paginate(10);
 

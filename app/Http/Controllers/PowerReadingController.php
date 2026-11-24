@@ -21,7 +21,7 @@ class PowerReadingController extends Controller
     // Display all power readings
     public function index()
     {
-        $powerReadings = PowerReading::with('station') // NEED FURTHER OPTIMIZATION
+        $powerReadings = PowerReading::with('station:station_code')
             ->orderByDesc('reading_timestamp')
             ->paginate(10);
 
@@ -33,7 +33,9 @@ class PowerReadingController extends Controller
     // Show the create form
     public function create()
     {
-        $powerStations = PowerStation::orderBy('station_code')->get();
+        $powerStations = PowerStation::query()
+            ->orderBy('station_code')
+            ->get(['station_code', 'installed_capacity_mw']);
 
         return Inertia::render('PowerReading/create', [
             'powerStations' => $powerStations,
@@ -59,7 +61,9 @@ class PowerReadingController extends Controller
     // Show the edit form
     public function edit(PowerReading $powerReading)
     {
-        $powerStations = PowerStation::orderBy('station_code')->get(); // NEED FURTHER OPTIMIZATION
+        $powerStations = PowerStation::query()
+            ->orderBy('station_code')
+            ->get(['station_code', 'installed_capacity_mw']);
 
         return Inertia::render('PowerReading/create', [
             'powerReading' => $powerReading,

@@ -26,9 +26,33 @@ class PowerManagementTest extends TestCase
             ->assertInertia(fn (Assert $page) => $page
                 ->component('PowerStation/create')
                 ->has('stationTypes', 4)
+                ->has('stationTypes.0.station_type_id')
+                ->has('stationTypes.0.type_name')
                 ->has('operators', 2)
+                ->has('operators.0.operator_id')
+                ->has('operators.0.operator_name')
                 ->has('gridZones', 3)
+                ->has('gridZones.0.grid_zone_id')
+                ->has('gridZones.0.zone_name')
             );
+    }
+
+    public function test_grid_zone_request_sanitizes_and_validates_zone_name(): void
+    {
+        $this->post(route('grid-zones.store'), ['zone_name' => '<b> </b>'])
+            ->assertSessionHasErrors([
+                'zone_name' => 'Grid zone name cannot be empty.',
+            ]);
+
+        $this->post(route('grid-zones.store'), ['zone_name' => str_repeat('a', 101)])
+            ->assertSessionHasErrors([
+                'zone_name' => 'Grid zone name must not exceed 100 characters.',
+            ]);
+
+        $this->post(route('grid-zones.store'), ['zone_name' => '<b> North </b>'])
+            ->assertRedirect(route('grid-zones.index'));
+
+        $this->assertDatabaseHas('grid_zones', ['zone_name' => 'North']);
     }
 
     public function test_dashboard_displays_power_station_and_reading_metrics(): void
@@ -120,6 +144,14 @@ class PowerManagementTest extends TestCase
     public function test_power_readings_use_the_service_and_include_station_and_payout(): void
     {
         $station = $this->createPowerStation();
+        $this->withoutVite()
+            ->get(route('power-readings.create'))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('PowerReading/create')
+                ->where('powerStations.0.station_code', $station->station_code)
+                ->where('powerStations.0.installed_capacity_mw', '3.500')
+            );
+
         $data = [
             'station_code' => strtolower($station->station_code),
             'kwh_generated' => '12.345',
@@ -137,6 +169,13 @@ class PowerManagementTest extends TestCase
 
         $reading = PowerReading::firstOrFail();
         $this->assertSame('1.54', $reading->gross_payout);
+        $this->withoutVite()
+            ->get(route('power-readings.edit', $reading->reading_id))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('PowerReading/create')
+                ->where('powerStations.0.station_code', $station->station_code)
+                ->where('powerStations.0.installed_capacity_mw', '3.500')
+            );
 
         $data['kwh_generated'] = '20.000';
         $data['reading_timestamp'] = now()->addYear()->format('Y-m-d\TH:i');

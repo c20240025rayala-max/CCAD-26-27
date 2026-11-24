@@ -23,12 +23,20 @@ class PowerStationController extends Controller
     // Display all power stations
     public function index()
     {
-        $powerStations = PowerStation::with([
-            'stationType',  // NEED FURTHER OPTIMIZATION
-            'operator', // NEED FURTHER OPTIMIZATION
-            'gridZone', // NEED FURTHER OPTIMIZATION
-            'readings', // NEED FURTHER OPTIMIZATION
-        ])
+        $powerStations = PowerStation::query()
+            ->select([
+                'station_code',
+                'station_type_id',
+                'operator_id',
+                'grid_zone_id',
+                'station_status',
+                'installed_capacity_mw',
+            ])
+            ->with([
+                'stationType:station_type_id,type_name',
+                'operator:operator_id,operator_name',
+                'gridZone:grid_zone_id,zone_name',
+            ])
             ->orderBy('station_code')
             ->paginate(10);
 
@@ -40,9 +48,15 @@ class PowerStationController extends Controller
     // Show the create form
     public function create()
     {
-        $stationTypes = StationType::orderBy('type_name')->get(); // NEED FURTHER OPTIMIZATION
-        $operators = Operator::orderBy('operator_name')->get(); // NEED FURTHER OPTIMIZATION
-        $gridZones = GridZone::orderBy('zone_name')->get(); // NEED FURTHER OPTIMIZATION
+        $stationTypes = StationType::query()
+            ->orderBy('type_name')
+            ->get(['station_type_id', 'type_name']);
+        $operators = Operator::query()
+            ->orderBy('operator_name')
+            ->get(['operator_id', 'operator_name']);
+        $gridZones = GridZone::query()
+            ->orderBy('zone_name')
+            ->get(['grid_zone_id', 'zone_name']);
 
         return Inertia::render('PowerStation/create', [
             'stationTypes' => $stationTypes,
@@ -70,9 +84,15 @@ class PowerStationController extends Controller
     // Show the edit form
     public function edit(PowerStation $powerStation)
     {
-        $stationTypes = StationType::orderBy('type_name')->get(); // NEED FURTHER OPTIMIZATION
-        $operators = Operator::orderBy('operator_name')->get(); // NEED FURTHER OPTIMIZATION
-        $gridZones = GridZone::orderBy('zone_name')->get(); // NEED FURTHER OPTIMIZATION
+        $stationTypes = StationType::query()
+            ->orderBy('type_name')
+            ->get(['station_type_id', 'type_name']);
+        $operators = Operator::query()
+            ->orderBy('operator_name')
+            ->get(['operator_id', 'operator_name']);
+        $gridZones = GridZone::query()
+            ->orderBy('zone_name')
+            ->get(['grid_zone_id', 'zone_name']);
 
         return Inertia::render('PowerStation/create', [
             'powerStation' => $powerStation,
