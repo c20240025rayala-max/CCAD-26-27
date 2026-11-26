@@ -35,35 +35,7 @@ function formatDecimal(value: string, decimalPlaces: number): string {
     if (!match) return value;
 
     const [, sign, whole, decimals = ''] = match;
-    return `${sign}${BigInt(whole).toLocaleString()}.${decimals.padEnd(decimalPlaces, '0').slice(0, decimalPlaces)}`;
-}
-
-function NumberWithBreaks({
-    value,
-    decimalPlaces,
-    prefix = '',
-    suffix = '',
-}: {
-    value: string;
-    decimalPlaces: number;
-    prefix?: string;
-    suffix?: string;
-}) {
-    const groups = formatDecimal(value, decimalPlaces).split(',');
-
-    return (
-        <>
-            {prefix}
-            {groups.map((group, index) => (
-                <span key={index}>
-                    {index > 0 ? ',' : ''}
-                    {group}
-                    {index < groups.length - 1 && <wbr />}
-                </span>
-            ))}
-            {suffix}
-        </>
-    );
+    return `${sign}${BigInt(whole).toString()}.${decimals.padEnd(decimalPlaces, '0').slice(0, decimalPlaces)}`;
 }
 
 export default function PowerReadingIndex({ powerReadings, filters }: Props) {
@@ -152,41 +124,50 @@ export default function PowerReadingIndex({ powerReadings, filters }: Props) {
                     {powerReadings.data.length > 0 ? (
                         <div className="w-full">
                             <table className="w-full table-fixed text-left text-xs sm:text-sm">
+                                <colgroup>
+                                    <col style={{ width: '15%' }} />
+                                    <col style={{ width: '13%' }} />
+                                    <col style={{ width: '13%' }} />
+                                    <col style={{ width: '17%' }} />
+                                    <col style={{ width: '17%' }} />
+                                    <col style={{ width: '15%' }} />
+                                    <col style={{ width: '10%' }} />
+                                </colgroup>
                                 <thead className="bg-muted/40 text-muted-foreground border-b">
                                     <tr>
-                                        <th className="px-2 py-3 font-medium sm:px-3">Station</th>
-                                        <th className="px-2 py-3 text-right font-medium sm:px-3">Generated</th>
-                                        <th className="px-2 py-3 text-right font-medium sm:px-3">Peak output</th>
-                                        <th className="px-2 py-3 text-right font-medium sm:px-3">Tariff rate</th>
-                                        <th className="px-2 py-3 text-right font-medium sm:px-3">Gross payout</th>
-                                        <th className="px-2 py-3 font-medium sm:px-3">Timestamp</th>
-                                        <th className="px-2 py-3 font-medium sm:px-3">Actions</th>
+                                        <th className="px-3 py-3 font-medium">Station</th>
+                                        <th className="px-3 py-3 font-medium">Generated</th>
+                                        <th className="px-3 py-3 font-medium">Peak output</th>
+                                        <th className="px-3 py-3 font-medium">Tariff rate</th>
+                                        <th className="px-3 py-3 font-medium">Gross payout</th>
+                                        <th className="px-3 py-3 font-medium">Timestamp</th>
+                                        <th className="px-3 py-3 font-medium">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {powerReadings.data.map((reading) => (
                                         <tr key={reading.reading_id} className="hover:bg-muted/30 border-b transition-colors last:border-0">
-                                            <td className="break-words px-2 py-4 font-semibold sm:px-3">
+                                            <td className="break-words px-3 py-4 font-semibold">
                                                 {reading.station?.station_code ?? reading.station_code}
                                             </td>
-                                            <td className="break-words px-2 py-4 text-right font-medium tabular-nums sm:px-3">
-                                                <NumberWithBreaks value={reading.kwh_generated} decimalPlaces={3} />{' '}
+                                            <td className="break-words px-3 py-4 font-medium tabular-nums">
+                                                {formatDecimal(reading.kwh_generated, 3)}{' '}
                                                 <span className="text-muted-foreground font-normal">kWh</span>
                                             </td>
-                                            <td className="break-words px-2 py-4 text-right font-medium tabular-nums sm:px-3">
-                                                <NumberWithBreaks value={reading.peak_mw} decimalPlaces={3} />{' '}
+                                            <td className="break-words px-3 py-4 font-medium tabular-nums">
+                                                {formatDecimal(reading.peak_mw, 3)}{' '}
                                                 <span className="text-muted-foreground font-normal">MW</span>
                                             </td>
-                                            <td className="break-words px-2 py-4 text-right tabular-nums sm:px-3">
-                                                <NumberWithBreaks value={reading.feed_in_tariff_rate} decimalPlaces={4} prefix="PHP " suffix="/kWh" />
+                                            <td className="break-words px-3 py-4 tabular-nums">
+                                                PHP {formatDecimal(reading.feed_in_tariff_rate, 4)}/kWh
                                             </td>
-                                            <td className="break-words px-2 py-4 text-right font-semibold tabular-nums sm:px-3">
-                                                <NumberWithBreaks value={reading.gross_payout} decimalPlaces={2} prefix="PHP " />
+                                            <td className="break-words px-3 py-4 font-semibold tabular-nums">
+                                                PHP {formatDecimal(reading.gross_payout, 2)}
                                             </td>
-                                            <td className="text-muted-foreground break-words px-2 py-4 tabular-nums sm:px-3">
+                                            <td className="text-muted-foreground break-words px-3 py-4 tabular-nums">
                                                 {reading.reading_timestamp_display}
                                             </td>
-                                            <td className="px-2 py-4 sm:px-3">
+                                            <td className="px-3 py-4">
                                                 <div className="flex flex-wrap gap-x-2 gap-y-1">
                                                     <Link
                                                         href={route('power-readings.edit', reading.reading_id)}
