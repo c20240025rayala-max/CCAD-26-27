@@ -7,6 +7,7 @@ use App\Models\PowerStation;
 use App\Http\Requests\StorePowerReadingRequest;
 use App\Http\Requests\UpdatePowerReadingRequest;
 use App\Services\PowerReadingService;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class PowerReadingController extends Controller
@@ -19,14 +20,45 @@ class PowerReadingController extends Controller
     }
 
     // Display all power readings
-    public function index()
+    public function index(Request $request)
     {
-        $powerReadings = PowerReading::with('station:station_code')
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'from' => ['nullable', 'date'],
+            'to' => array_values(array_filter([
+                'nullable',
+                'date',
+                $request->filled('from') ? 'after_or_equal:from' : null,
+            ])),
+        ]);
+        $search = trim($filters['search'] ?? '');
+        $query = PowerReading::with('station:station_code');
+
+        if ($search !== '') {
+            $query->where(function ($query) use ($search) {
+                $query->where('station_code', 'like', "%{$search}%");
+                if (ctype_digit($search)) {
+                    $query->orWhere('reading_id', (int) $search);
+                }
+            });
+        }
+
+        $query
+            ->when($filters['from'] ?? null, fn ($query, $date) => $query->whereDate('reading_timestamp', '>=', $date))
+            ->when($filters['to'] ?? null, fn ($query, $date) => $query->whereDate('reading_timestamp', '<=', $date));
+
+        $powerReadings = $query
             ->orderByDesc('reading_timestamp')
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('PowerReading/index', [
             'powerReadings' => $powerReadings,
+            'filters' => [
+                'search' => $search,
+                'from' => $filters['from'] ?? '',
+                'to' => $filters['to'] ?? '',
+            ],
         ]);
     }
 

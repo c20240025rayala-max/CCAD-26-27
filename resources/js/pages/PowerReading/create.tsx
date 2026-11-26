@@ -15,6 +15,7 @@ interface Reading {
     kwh_generated: string;
     peak_mw: string;
     reading_timestamp: string;
+    reading_timestamp_local?: string;
     feed_in_tariff_rate: string;
 }
 
@@ -35,7 +36,7 @@ export default function PowerReadingCreate({ powerStations, powerReading }: Prop
         station_code: powerReading?.station_code ?? '',
         kwh_generated: powerReading?.kwh_generated ?? '',
         peak_mw: powerReading?.peak_mw ?? '',
-        reading_timestamp: powerReading?.reading_timestamp?.slice(0, 16) ?? currentReadingTime,
+        reading_timestamp: powerReading?.reading_timestamp_local ?? powerReading?.reading_timestamp?.slice(0, 16) ?? currentReadingTime,
         feed_in_tariff_rate: powerReading?.feed_in_tariff_rate ?? '',
     });
     const selectedStation = powerStations.find((station) => station.station_code === data.station_code);
@@ -95,6 +96,7 @@ export default function PowerReadingCreate({ powerStations, powerReading }: Prop
                             <input
                                 type="number"
                                 min="0"
+                                max="99999999999.999"
                                 step="0.001"
                                 required
                                 className={fieldClassName}
@@ -108,7 +110,7 @@ export default function PowerReadingCreate({ powerStations, powerReading }: Prop
                             <input
                                 type="number"
                                 min="0"
-                                max={selectedStation?.installed_capacity_mw ?? undefined}
+                                max={Math.min(Number(selectedStation?.installed_capacity_mw ?? '999999999.999'), 999999999.999)}
                                 step="0.001"
                                 required
                                 className={fieldClassName}
@@ -138,6 +140,7 @@ export default function PowerReadingCreate({ powerStations, powerReading }: Prop
                             <input
                                 type="number"
                                 min="0"
+                                max="99999999.9999"
                                 step="0.0001"
                                 required
                                 className={fieldClassName}

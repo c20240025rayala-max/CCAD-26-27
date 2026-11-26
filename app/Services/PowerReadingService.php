@@ -11,6 +11,12 @@ class PowerReadingService
 {
     private const PEAK_DROP_ALERT_PERCENT = 20;
 
+    private const NUMERIC_FIELD_LIMITS = [
+        'kwh_generated' => ['maximum' => 99999999999.999, 'formatted' => '99,999,999,999.999'],
+        'peak_mw' => ['maximum' => 999999999.999, 'formatted' => '999,999,999.999'],
+        'feed_in_tariff_rate' => ['maximum' => 99999999.9999, 'formatted' => '99,999,999.9999'],
+    ];
+
     private function sanitize(array $data): array
     {
         if (isset($data['station_code'])) {
@@ -29,17 +35,18 @@ class PowerReadingService
 
     private function checkConstraints(array $data): void
     {
-        $numericFields = [
-            'kwh_generated',
-            'peak_mw',
-            'feed_in_tariff_rate',
-        ];
-
-        foreach ($numericFields as $field) {
+        foreach (self::NUMERIC_FIELD_LIMITS as $field => $limits) {
             if (isset($data[$field]) && (!is_numeric($data[$field]) || (float) $data[$field] < 0)) {
                 throw ValidationException::withMessages([
                     $field => ucfirst(str_replace('_', ' ', $field)) .
                         ' must be a non-negative number.',
+                ]);
+            }
+
+            if (isset($data[$field]) && (float) $data[$field] > $limits['maximum']) {
+                throw ValidationException::withMessages([
+                    $field => ucfirst(str_replace('_', ' ', $field)) .
+                        ' cannot exceed ' . $limits['formatted'] . '.',
                 ]);
             }
         }

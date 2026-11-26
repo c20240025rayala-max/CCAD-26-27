@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use Illuminate\Http\Request;
 use App\Models\Operator;
 use App\Http\Requests\OperatorRequest;
 use App\Services\OperatorService;
+use Inertia\Inertia;
 
 class OperatorController extends Controller
 {
@@ -16,19 +18,35 @@ class OperatorController extends Controller
     }
 
     // Display all operators
-    public function index()
+    public function index(Request $request)
     {
-        $operators = Operator::with('powerStations')
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+        ]);
+        $search = trim($filters['search'] ?? '');
+        $operators = Operator::withCount('powerStations')
+            ->when($search !== '', fn ($query) => $query->where('operator_name', 'like', "%{$search}%"))
             ->orderBy('operator_name')
-            ->paginate(10);
+            ->paginate(10)
+            ->withQueryString();
 
-        return view('operators.index', compact('operators'));
+        return Inertia::render('ReferenceData/index', [
+            'resource' => 'operators',
+            'records' => $operators->through(fn (Operator $operator) => [
+                'id' => $operator->operator_id,
+                'name' => $operator->operator_name,
+                'stationCount' => $operator->power_stations_count,
+            ]),
+            'filters' => ['search' => $search],
+        ]);
     }
 
     // Show the create form
     public function create()
     {
-        return view('operators.create'); // MO JSX PAGE
+        return Inertia::render('ReferenceData/form', [
+            'resource' => 'operators',
+        ]);
     }
 
     // Store a new operator
@@ -44,15 +62,19 @@ class OperatorController extends Controller
     // Display one operator
     public function show(Operator $operator)
     {
-        $operator->load('powerStations');
-
-        return view('operators.show', compact('operator'));
+        return to_route('operators.edit', $operator);
     }
 
     // Show the edit form
     public function edit(Operator $operator)
     {
-        return view('operators.edit', compact('operator'));
+        return Inertia::render('ReferenceData/form', [
+            'resource' => 'operators',
+            'record' => [
+                'id' => $operator->operator_id,
+                'name' => $operator->operator_name,
+            ],
+        ]);
     }
 
     // Update an operator

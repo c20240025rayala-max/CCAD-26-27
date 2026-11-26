@@ -9,7 +9,11 @@ class PowerReading extends Model
 {
     protected $primaryKey = 'reading_id';
 
-    protected $appends = ['gross_payout'];
+    protected $appends = [
+        'gross_payout',
+        'reading_timestamp_display',
+        'reading_timestamp_local',
+    ];
 
     protected $fillable = [
         'station_code',
@@ -49,5 +53,15 @@ class PowerReading extends Model
             '.',
             ''
         );
+    }
+
+    public function getReadingTimestampDisplayAttribute(): ?string
+    {
+        return $this->reading_timestamp?->format('Y-m-d H:i');
+    }
+
+    public function getReadingTimestampLocalAttribute(): ?string
+    {
+        return $this->reading_timestamp?->format('Y-m-d\TH:i');
     }
 }

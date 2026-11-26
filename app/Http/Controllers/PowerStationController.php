@@ -9,6 +9,8 @@ use App\Models\GridZone;
 use App\Http\Requests\StorePowerStationRequest;
 use App\Http\Requests\UpdatePowerStationRequest;
 use App\Services\PowerStationService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use Inertia\Inertia;
 
 class PowerStationController extends Controller
@@ -21,9 +23,17 @@ class PowerStationController extends Controller
     }
 
     // Display all power stations
-    public function index()
+    public function index(Request $request)
     {
-        $powerStations = PowerStation::query()
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:100'],
+            'status' => ['nullable', 'in:active,inactive,maintenance'],
+            'sort' => ['nullable', 'in:station_code,station_status,installed_capacity_mw'],
+        ]);
+        $search = trim($filters['search'] ?? '');
+        $statusFilter = $filters['status'] ?? '';
+        $sort = $filters['sort'] ?? 'station_code';
+        $query = PowerStation::query()
             ->select([
                 'station_code',
                 'station_type_id',
@@ -36,12 +46,41 @@ class PowerStationController extends Controller
                 'stationType:station_type_id,type_name',
                 'operator:operator_id,operator_name',
                 'gridZone:grid_zone_id,zone_name',
-            ])
-            ->orderBy('station_code')
-            ->paginate(10);
+            ]);
+
+        if ($search !== '') {
+            $query->where(function ($query) use ($search) {
+                $query->where('station_code', 'like', "%{$search}%")
+                    ->orWhereHas('stationType', fn ($query) => $query->where('type_name', 'like', "%{$search}%"))
+                    ->orWhereHas('operator', fn ($query) => $query->where('operator_name', 'like', "%{$search}%"))
+                    ->orWhereHas('gridZone', fn ($query) => $query->where('zone_name', 'like', "%{$search}%"));
+            });
+        }
+
+        if ($statusFilter === 'active') {
+            $query->whereIn(DB::raw('LOWER(station_status)'), ['active', 'online', 'operational']);
+        } elseif ($statusFilter === 'inactive') {
+            $query->whereIn(DB::raw('LOWER(station_status)'), ['inactive', 'offline']);
+        } elseif ($statusFilter === 'maintenance') {
+            $query->whereRaw('LOWER(station_status) = ?', ['maintenance']);
+        }
+
+        $powerStations = $query
+            ->when(
+                $sort === 'station_status',
+                fn ($query) => $query->orderByRaw('LOWER(station_status)'),
+                fn ($query) => $query->orderBy($sort, $sort === 'installed_capacity_mw' ? 'desc' : 'asc')
+            )
+            ->paginate(10)
+            ->withQueryString();
 
         return Inertia::render('PowerStation/index', [
             'powerStations' => $powerStations,
+            'filters' => [
+                'search' => $search,
+                'status' => $statusFilter,
+                'sort' => $sort,
+            ],
         ]);
     }
 

@@ -1,7 +1,8 @@
 import AppLayout from '@/layouts/app-layout';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/react';
-import { Factory, Plus } from 'lucide-react';
+import { Factory, Plus, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface PowerStation {
     station_code: string;
@@ -13,9 +14,15 @@ interface PowerStation {
 }
 
 interface Props {
+    filters: {
+        search: string;
+        status: string;
+        sort: string;
+    };
     powerStations: {
         data: PowerStation[];
         links: { url: string | null; label: string; active: boolean }[];
+        total: number;
     };
 }
 
@@ -37,7 +44,34 @@ function statusClassName(status: string) {
     }
 }
 
-export default function PowerStationIndex({ powerStations }: Props) {
+export default function PowerStationIndex({ powerStations, filters }: Props) {
+    const [search, setSearch] = useState(filters.search);
+
+    useEffect(() => {
+        const normalizedSearch = search.trim();
+        if (normalizedSearch === filters.search) return;
+        const timer = window.setTimeout(() => {
+            router.get(
+                route('power-stations.index'),
+                { search: normalizedSearch || undefined, status: filters.status || undefined, sort: filters.sort || undefined },
+                { preserveScroll: true, preserveState: true, replace: true },
+            );
+        }, 300);
+        return () => window.clearTimeout(timer);
+    }, [search, filters.search, filters.status, filters.sort]);
+
+    const updateFilter = (key: 'status' | 'sort', value: string) => {
+        router.get(
+            route('power-stations.index'),
+            {
+                search: search.trim() || undefined,
+                status: key === 'status' ? value || undefined : filters.status || undefined,
+                sort: key === 'sort' ? value || undefined : filters.sort || undefined,
+            },
+            { preserveScroll: true, preserveState: true, replace: true },
+        );
+    };
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Power stations" />
@@ -66,9 +100,44 @@ export default function PowerStationIndex({ powerStations }: Props) {
                     <div className="flex flex-wrap items-center justify-between gap-2 border-b px-5 py-4">
                         <div>
                             <h2 className="font-semibold">Station directory</h2>
-                            <p className="text-muted-foreground mt-1 text-sm">{powerStations.data.length} stations on this page</p>
+                            <p className="text-muted-foreground mt-1 text-sm">
+                                Showing {powerStations.data.length} of {powerStations.total} stations
+                            </p>
                         </div>
-                        <span className="bg-muted text-muted-foreground rounded-full px-3 py-1 text-xs font-medium">Page view</span>
+                        <div className="grid w-full gap-2 sm:w-auto sm:grid-cols-3">
+                            <label className="relative sm:col-span-1">
+                                <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" aria-hidden="true" />
+                                <input
+                                    type="search"
+                                    value={search}
+                                    onChange={(event) => setSearch(event.target.value)}
+                                    placeholder="Search stations"
+                                    aria-label="Search stations"
+                                    className="bg-background w-full rounded-md border py-2 pr-3 pl-9 text-sm outline-none focus:ring-2 focus:ring-ring"
+                                />
+                            </label>
+                            <select
+                                aria-label="Filter by status"
+                                value={filters.status}
+                                onChange={(event) => updateFilter('status', event.target.value)}
+                                className="bg-background rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                            >
+                                <option value="">All statuses</option>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="maintenance">Maintenance</option>
+                            </select>
+                            <select
+                                aria-label="Sort stations"
+                                value={filters.sort}
+                                onChange={(event) => updateFilter('sort', event.target.value)}
+                                className="bg-background rounded-md border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
+                            >
+                                <option value="station_code">Sort: code</option>
+                                <option value="station_status">Sort: status</option>
+                                <option value="installed_capacity_mw">Sort: capacity</option>
+                            </select>
+                        </div>
                     </div>
                     <div className="w-full">
                         <table className="w-full table-fixed text-left text-xs sm:text-sm">
@@ -126,16 +195,20 @@ export default function PowerStationIndex({ powerStations }: Props) {
                                                 <div className="bg-muted text-muted-foreground rounded-full p-3">
                                                     <Factory className="size-5" aria-hidden="true" />
                                                 </div>
-                                                <p className="mt-3 font-semibold">No power stations yet</p>
+                                                <p className="mt-3 font-semibold">{filters.search || filters.status ? 'No matching stations' : 'No power stations yet'}</p>
                                                 <p className="text-muted-foreground mt-1 text-sm">
-                                                    Add a station to start tracking generation capacity.
+                                                    {filters.search || filters.status
+                                                        ? 'Try a different search term or status filter.'
+                                                        : 'Add a station to start tracking generation capacity.'}
                                                 </p>
-                                                <Link
-                                                    href={route('power-stations.create')}
-                                                    className="bg-primary text-primary-foreground mt-4 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium"
-                                                >
-                                                    <Plus className="size-4" aria-hidden="true" /> Add station
-                                                </Link>
+                                                {!filters.search && !filters.status && (
+                                                    <Link
+                                                        href={route('power-stations.create')}
+                                                        className="bg-primary text-primary-foreground mt-4 inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium"
+                                                    >
+                                                        <Plus className="size-4" aria-hidden="true" /> Add station
+                                                    </Link>
+                                                )}
                                             </div>
                                         </td>
                                     </tr>
